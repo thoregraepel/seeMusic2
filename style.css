@@ -217,6 +217,46 @@ h1 {
   white-space: nowrap;
 }
 
+h1 sup {
+  font-size: 0.65em;
+  vertical-align: super;
+  font-weight: 400;
+  color: #7ab8ff;
+}
+
+#mode-indicator {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: #aaa;
+  white-space: nowrap;
+}
+
+#mode-indicator[data-mode="audio"] {
+  border-color: #4a9eff88;
+  color: var(--accent);
+}
+
+#audio-upload-label {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s;
+  border-left: 2px solid var(--accent);
+}
+
+#audio-upload-label:hover { background: var(--border); }
+
+#audio-input { display: none; }
+
 #controls {
   display: flex;
   align-items: center;

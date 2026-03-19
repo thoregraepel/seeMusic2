@@ -169,40 +169,74 @@ export function render(activeNotes, opts) {
       return col;
     });
 
-    const waveVals = new Array(N);
     const k = N > 0 ? 1 / N : 1;
 
-    for (let y = 0; y < H; y++) {
-      const dy   = y - cy;
-      const base = y * W * 4;
-      for (let x = 0; x < W; x++) {
-        const dx  = x - cx;
-        const idx = base + x * 4;
-
-        if (hyperbolic && (dx * dx + dy * dy) >= R * R) {
-          data[idx] = data[idx + 1] = data[idx + 2] = 128;
-          data[idx + 3] = 255;
-          continue;
+    // ── Sum / colour: O(N·W + N·H + W·H) fast path ───────────────────────
+    // For sum superposition the per-pixel inner loop decomposes into two
+    // independent 1-D weighted sums (one per axis), keeping 88-note FFT
+    // input fast. Product / max cannot be decomposed and fall through to
+    // the per-pixel loop below (caller should limit N for those modes).
+    if (superMode === 'sum' || colorMode) {
+      if (colorMode) {
+        const FxR = new Float32Array(W); const FyR = new Float32Array(H);
+        const FxG = new Float32Array(W); const FyG = new Float32Array(H);
+        const FxB = new Float32Array(W); const FyB = new Float32Array(H);
+        for (let i = 0; i < N; i++) {
+          const rr = amps[i] * noteRGB[i][0];
+          const gg = amps[i] * noteRGB[i][1];
+          const bb = amps[i] * noteRGB[i][2];
+          for (let x = 0; x < W; x++) { FxR[x] += rr * xWave[i][x]; FxG[x] += gg * xWave[i][x]; FxB[x] += bb * xWave[i][x]; }
+          for (let y = 0; y < H; y++) { FyR[y] += rr * yWave[i][y]; FyG[y] += gg * yWave[i][y]; FyB[y] += bb * yWave[i][y]; }
         }
-
-        if (colorMode) {
-          let sumR = 0, sumG = 0, sumB = 0;
-          for (let i = 0; i < N; i++) {
-            const aw = amps[i] * (xWave[i][x] + yWave[i][y]) * 0.5;
-            sumR += aw * noteRGB[i][0];
-            sumG += aw * noteRGB[i][1];
-            sumB += aw * noteRGB[i][2];
+        for (let y = 0; y < H; y++) {
+          const dy = y - cy; const base = y * W * 4;
+          for (let x = 0; x < W; x++) {
+            const idx = base + x * 4;
+            if (hyperbolic && ((x-cx)*(x-cx)+dy*dy) >= R*R) { data[idx]=data[idx+1]=data[idx+2]=128; data[idx+3]=255; continue; }
+            data[idx]   = Math.round((((FxR[x]+FyR[y])*0.5*k+1)*0.5)*255);
+            data[idx+1] = Math.round((((FxG[x]+FyG[y])*0.5*k+1)*0.5)*255);
+            data[idx+2] = Math.round((((FxB[x]+FyB[y])*0.5*k+1)*0.5)*255);
+            data[idx+3] = 255;
           }
-          data[idx]     = Math.round(((sumR * k + 1) * 0.5) * 255);
-          data[idx + 1] = Math.round(((sumG * k + 1) * 0.5) * 255);
-          data[idx + 2] = Math.round(((sumB * k + 1) * 0.5) * 255);
-        } else {
+        }
+      } else {
+        const Fx = new Float32Array(W);
+        const Fy = new Float32Array(H);
+        for (let i = 0; i < N; i++) {
+          const a = amps[i];
+          for (let x = 0; x < W; x++) Fx[x] += a * xWave[i][x];
+          for (let y = 0; y < H; y++) Fy[y] += a * yWave[i][y];
+        }
+        for (let y = 0; y < H; y++) {
+          const dy = y - cy; const base = y * W * 4;
+          for (let x = 0; x < W; x++) {
+            const idx = base + x * 4;
+            if (hyperbolic && ((x-cx)*(x-cx)+dy*dy) >= R*R) { data[idx]=data[idx+1]=data[idx+2]=128; data[idx+3]=255; continue; }
+            const gray = Math.round(((((Fx[x]+Fy[y])*0.5*k)+1)*0.5)*255);
+            data[idx]=data[idx+1]=data[idx+2]=gray; data[idx+3]=255;
+          }
+        }
+      }
+    } else {
+      // ── Product / max: per-pixel note loop ───────────────────────────────
+      const waveVals = new Array(N);
+      for (let y = 0; y < H; y++) {
+        const dy   = y - cy;
+        const base = y * W * 4;
+        for (let x = 0; x < W; x++) {
+          const dx  = x - cx;
+          const idx = base + x * 4;
+          if (hyperbolic && (dx * dx + dy * dy) >= R * R) {
+            data[idx] = data[idx + 1] = data[idx + 2] = 128;
+            data[idx + 3] = 255;
+            continue;
+          }
           for (let i = 0; i < N; i++)
             waveVals[i] = (xWave[i][x] + yWave[i][y]) * 0.5;
           const gray = Math.round(((superpose(waveVals, amps, superMode) + 1) * 0.5) * 255);
           data[idx] = data[idx + 1] = data[idx + 2] = gray;
+          data[idx + 3] = 255;
         }
-        data[idx + 3] = 255;
       }
     }
 
