@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     onSeek:      handleSeek,
     onAudioToggle: () => {
       state.showAudio = !state.showAudio;
-      if (state.inputMode === 'audio') mp3.setMuted(!state.showAudio);
+      if (state.inputMode === 'audio' || state.inputMode === 'mic') mp3.setMuted(!state.showAudio);
       else audio.setMuted(!state.showAudio);
       return state.showAudio;
     },
@@ -115,6 +115,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     onFftGain:       v  => { state.fftGain      = v;  },
     onFftSmoothing:     v => { state.fftSmoothing     = v; mp3.setSmoothing(v); },
     onFftThresholdTilt: v => { state.fftThresholdTilt = v; },
+    onMicToggle: () => {
+      if (state.inputMode === 'mic') {
+        mp3.stopMic();
+        state.inputMode = 'midi';
+        ui.setModeIndicator('midi');
+        ui.setPlayButton('▶ Play');
+        return false;  // mic now off
+      } else {
+        mp3.startMic()
+          .then(() => {
+            fftNoteRanges = buildNoteRanges(mp3.getSampleRate(), 8192);
+            fftFreqBuf    = new Float32Array(mp3.getAnalyserNode().frequencyBinCount);
+            state.inputMode = 'mic';
+            state.duration  = 0;
+            ui.setModeIndicator('mic');
+            ui.setKeyDisplay('—');
+            ui.setProgress(0, 0);
+            ui.setTimeDisplay(0, 0);
+            ui.setPlayButton('▶ Play');
+          })
+          .catch(err => {
+            console.error('Mic error:', err);
+            alert('Microphone access denied or unavailable.');
+          });
+        return true;  // mic now on (pending)
+      }
+    },
   });
 
   // Overlay: click anywhere → init MIDI audio and load default file
@@ -235,8 +262,8 @@ function startRaf() {
   function frame() {
     let t, active;
 
-    if (state.inputMode === 'audio') {
-      t = mp3.getTime();
+    if (state.inputMode === 'audio' || state.inputMode === 'mic') {
+      t = state.inputMode === 'audio' ? mp3.getTime() : 0;
 
       // Get live FFT notes, filter by pitch range, then keep top-N loudest
       let notes = fftNoteRanges
@@ -279,8 +306,8 @@ function startRaf() {
     if (state.syncMeasure) updateSyncDisplay(performance.now() - syncT0);
 
     // Auto-stop
-    const playing = state.inputMode === 'audio'
-      ? mp3.getState() === 'started'
+    const playing = state.inputMode === 'mic' ? false
+      : state.inputMode === 'audio' ? mp3.getState() === 'started'
       : state.audioReady && audio.getState() === 'started';
     if (playing && t >= state.duration && state.duration > 0) {
       if (state.inputMode === 'audio') mp3.stop(); else audio.stop();

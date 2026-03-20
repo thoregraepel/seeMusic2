@@ -27,6 +27,7 @@ export function setupUI({
   onFftGain,
   onFftSmoothing,
   onFftThresholdTilt,
+  onMicToggle,
 }) {
   const fileSelect      = document.getElementById('file-select');
   const fileInput       = document.getElementById('file-input');
@@ -208,6 +209,13 @@ export function setupUI({
     const isFs = !!document.fullscreenElement;
     btnFullscreen.textContent = isFs ? '✕ Exit Full' : '⛶ Fullscreen';
     btnFullscreen.classList.toggle('active', isFs);
+  });
+
+  const btnMic = document.getElementById('btn-mic');
+  btnMic.addEventListener('click', () => {
+    const active = onMicToggle();
+    btnMic.classList.toggle('active', active);
+    btnMic.textContent = active ? '🎤 Mic: ON' : '🎤 Mic';
   });
 
   // About modal

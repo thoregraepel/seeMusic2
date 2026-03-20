@@ -36,10 +36,42 @@ export async function loadAudioFile(arrayBuffer) {
   return audioBuffer.duration;
 }
 
-export function getAnalyserNode() { return analyserNode; }
+export function getAnalyserNode() { return micAnalyser ?? analyserNode; }
 export function getSampleRate()   { return audioCtx ? audioCtx.sampleRate : 44100; }
 export function isLoaded()        { return audioBuffer !== null; }
-export function setSmoothing(v)   { if (analyserNode) analyserNode.smoothingTimeConstant = v; }
+export function setSmoothing(v)   {
+  if (analyserNode) analyserNode.smoothingTimeConstant = v;
+  if (micAnalyser)  micAnalyser.smoothingTimeConstant  = v;
+}
+
+// ── Microphone input ──────────────────────────────────────────────────────────
+let micStream   = null;
+let micSource   = null;
+let micAnalyser = null;  // separate node — intentionally NOT routed to speakers
+
+export async function startMic() {
+  await initAudio();
+  _stop();  // stop any file playback
+
+  micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+
+  // Create an isolated analyser so mic audio never reaches the speakers
+  micAnalyser = audioCtx.createAnalyser();
+  micAnalyser.fftSize = FFT_SIZE;
+  micAnalyser.smoothingTimeConstant = analyserNode.smoothingTimeConstant;
+
+  micSource = audioCtx.createMediaStreamSource(micStream);
+  micSource.connect(micAnalyser);
+  // micAnalyser is deliberately left unconnected to gainNode / destination
+}
+
+export function stopMic() {
+  if (micSource)  { micSource.disconnect();                       micSource  = null; }
+  if (micStream)  { micStream.getTracks().forEach(t => t.stop()); micStream  = null; }
+  if (micAnalyser){ micAnalyser.disconnect();                     micAnalyser = null; }
+}
+
+export function isMicActive() { return micSource !== null; }
 
 function _createSource() {
   if (!audioBuffer) return;
