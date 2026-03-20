@@ -21,6 +21,7 @@ export function setupUI({
   onVisualLead,
   onTempoScale,
   onFftThreshold,
+  onFftTopN,
 }) {
   const fileSelect      = document.getElementById('file-select');
   const fileInput       = document.getElementById('file-input');
@@ -126,6 +127,14 @@ export function setupUI({
     const db = Number(fftSlider.value);
     fftDisplay.textContent = `${db} dB`;
     onFftThreshold(db);
+  });
+
+  const topNSlider  = document.getElementById('fft-top-n');
+  const topNDisplay = document.getElementById('fft-top-n-display');
+  topNSlider.addEventListener('input', () => {
+    const n = Number(topNSlider.value);
+    topNDisplay.textContent = n;
+    onFftTopN(n);
   });
 
   const visualLeadSlider  = document.getElementById('visual-lead');

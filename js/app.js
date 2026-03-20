@@ -32,7 +32,7 @@ const state = {
   visualLeadMs:     22,
   // audio-mode only
   fftThreshold:     -50,        // dBFS; notes below this are ignored
-  fftMaxNotes:      88,         // cap for product/max modes in grid
+  fftTopN:          16,         // keep only the N loudest FFT notes (contrast control)
 };
 
 // FFT analyser state (initialised once an audio file is loaded)
@@ -104,6 +104,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       ui.setTimeDisplay(0, state.duration);
     },
     onFftThreshold: db => { state.fftThreshold = db; },
+    onFftTopN:       n  => { state.fftTopN      = n;  },
   });
 
   // Overlay: click anywhere → init MIDI audio and load default file
@@ -227,12 +228,14 @@ function startRaf() {
     if (state.inputMode === 'audio') {
       t = mp3.getTime();
 
-      // Get live FFT notes; cap to top-N for product/max grid mode
+      // Get live FFT notes, keep top-N loudest (contrast + performance control)
       let notes = fftNoteRanges
         ? getNotesFromFft(mp3.getAnalyserNode(), fftNoteRanges, fftFreqBuf, state.fftThreshold)
         : [];
+      notes = notes.slice(0, state.fftTopN);
+      // Extra safety cap for the per-pixel loop in grid + product/max
       if (state.renderMode === 'grid' && state.superMode !== 'sum' && !state.colorMode) {
-        notes = notes.slice(0, 24);  // limit per-pixel loop to keep grid fast
+        notes = notes.slice(0, 24);
       }
       active = notes;
 
