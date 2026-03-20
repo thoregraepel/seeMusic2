@@ -35,6 +35,7 @@ const state = {
   fftTopN:          16,         // keep only the N loudest FFT notes (contrast control)
   fftLowMidi:       36,         // C2 — lowest pitch passed to renderer
   fftHighMidi:      84,         // C6 — highest pitch passed to renderer
+  fftGain:          4.0,        // velocity multiplier before render (boosts contrast)
 };
 
 // FFT analyser state (initialised once an audio file is loaded)
@@ -109,6 +110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     onFftTopN:       n  => { state.fftTopN      = n;  },
     onFftLowMidi:    n  => { state.fftLowMidi   = n;  },
     onFftHighMidi:   n  => { state.fftHighMidi  = n;  },
+    onFftGain:       v  => { state.fftGain      = v;  },
   });
 
   // Overlay: click anywhere → init MIDI audio and load default file
@@ -238,6 +240,8 @@ function startRaf() {
         : [];
       notes = notes.filter(n => n.midi >= state.fftLowMidi && n.midi <= state.fftHighMidi);
       notes = notes.slice(0, state.fftTopN);
+      if (state.fftGain !== 1.0)
+        notes = notes.map(n => ({ ...n, velocity: Math.min(1, n.velocity * state.fftGain) }));
       // Extra safety cap for the per-pixel loop in grid + product/max
       if (state.renderMode === 'grid' && state.superMode !== 'sum' && !state.colorMode) {
         notes = notes.slice(0, 24);

@@ -24,6 +24,7 @@ export function setupUI({
   onFftTopN,
   onFftLowMidi,
   onFftHighMidi,
+  onFftGain,
 }) {
   const fileSelect      = document.getElementById('file-select');
   const fileInput       = document.getElementById('file-input');
@@ -153,6 +154,14 @@ export function setupUI({
     const n = Number(highMidiSlider.value);
     highMidiDisplay.textContent = midiToName(n);
     onFftHighMidi(n);
+  });
+
+  const gainSlider  = document.getElementById('fft-gain');
+  const gainDisplay = document.getElementById('fft-gain-display');
+  gainSlider.addEventListener('input', () => {
+    const v = Math.pow(2, Number(gainSlider.value));
+    gainDisplay.textContent = v.toFixed(1) + '×';
+    onFftGain(v);
   });
 
   const visualLeadSlider  = document.getElementById('visual-lead');
