@@ -36,6 +36,7 @@ const state = {
   fftLowMidi:       36,         // C2 — lowest pitch passed to renderer
   fftHighMidi:      84,         // C6 — highest pitch passed to renderer
   fftGain:          4.0,        // velocity multiplier before render (boosts contrast)
+  fftSmoothing:     0.75,       // AnalyserNode smoothingTimeConstant (0 = jittery, 1 = sluggish)
 };
 
 // FFT analyser state (initialised once an audio file is loaded)
@@ -111,6 +112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     onFftLowMidi:    n  => { state.fftLowMidi   = n;  },
     onFftHighMidi:   n  => { state.fftHighMidi  = n;  },
     onFftGain:       v  => { state.fftGain      = v;  },
+    onFftSmoothing:  v  => { state.fftSmoothing = v; mp3.setSmoothing(v); },
   });
 
   // Overlay: click anywhere → init MIDI audio and load default file

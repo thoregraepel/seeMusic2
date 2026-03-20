@@ -25,6 +25,7 @@ export function setupUI({
   onFftLowMidi,
   onFftHighMidi,
   onFftGain,
+  onFftSmoothing,
 }) {
   const fileSelect      = document.getElementById('file-select');
   const fileInput       = document.getElementById('file-input');
@@ -162,6 +163,14 @@ export function setupUI({
     const v = Math.pow(2, Number(gainSlider.value));
     gainDisplay.textContent = v.toFixed(1) + '×';
     onFftGain(v);
+  });
+
+  const smoothSlider  = document.getElementById('fft-smoothing');
+  const smoothDisplay = document.getElementById('fft-smoothing-display');
+  smoothSlider.addEventListener('input', () => {
+    const v = Number(smoothSlider.value);
+    smoothDisplay.textContent = v.toFixed(2);
+    onFftSmoothing(v);
   });
 
   const visualLeadSlider  = document.getElementById('visual-lead');
