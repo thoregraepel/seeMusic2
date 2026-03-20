@@ -37,13 +37,13 @@ export function buildNoteRanges(sampleRate, fftSize) {
  * @param {AnalyserNode} analyserNode
  * @param {Array}        noteRanges   — from buildNoteRanges()
  * @param {Float32Array} freqBuf      — reusable buffer, length = analyserNode.frequencyBinCount
- * @param {number}       thresholdDb  — e.g. -50 (dBFS)
+ * @param {number}       thresholdDb    — base threshold at C4, e.g. -50 (dBFS)
+ * @param {number}       thresholdTilt  — dB/octave slope; +3 raises threshold for high notes
  * @returns {Array<{midi, velocity}>} sorted loudest-first, velocity in [0,1]
  */
-export function getNotesFromFft(analyserNode, noteRanges, freqBuf, thresholdDb) {
+export function getNotesFromFft(analyserNode, noteRanges, freqBuf, thresholdDb, thresholdTilt = 0) {
   analyserNode.getFloatFrequencyData(freqBuf);
   const maxBin = freqBuf.length - 1;
-  const range  = -thresholdDb;   // dB span from threshold to 0 dBFS
 
   const notes = [];
   for (const { midi, binLow, binHigh } of noteRanges) {
@@ -52,8 +52,11 @@ export function getNotesFromFft(analyserNode, noteRanges, freqBuf, thresholdDb) 
     for (let b = binLow; b <= hi; b++) {
       if (freqBuf[b] > peak) peak = freqBuf[b];
     }
-    if (peak > thresholdDb) {
-      notes.push({ midi, velocity: Math.min(1, (peak - thresholdDb) / range) });
+    // Effective threshold rises/falls with pitch relative to C4 (midi 60)
+    const effThreshold = thresholdDb + thresholdTilt * (midi - 60) / 12;
+    const effRange     = Math.max(1, -effThreshold);  // dB span threshold → 0 dBFS
+    if (peak > effThreshold) {
+      notes.push({ midi, velocity: Math.min(1, (peak - effThreshold) / effRange) });
     }
   }
 

@@ -37,6 +37,7 @@ const state = {
   fftHighMidi:      84,         // C6 — highest pitch passed to renderer
   fftGain:          4.0,        // velocity multiplier before render (boosts contrast)
   fftSmoothing:     0.75,       // AnalyserNode smoothingTimeConstant (0 = jittery, 1 = sluggish)
+  fftThresholdTilt: 3,          // dB/octave; +ve raises threshold for high notes (suppresses overtones)
 };
 
 // FFT analyser state (initialised once an audio file is loaded)
@@ -112,7 +113,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     onFftLowMidi:    n  => { state.fftLowMidi   = n;  },
     onFftHighMidi:   n  => { state.fftHighMidi  = n;  },
     onFftGain:       v  => { state.fftGain      = v;  },
-    onFftSmoothing:  v  => { state.fftSmoothing = v; mp3.setSmoothing(v); },
+    onFftSmoothing:     v => { state.fftSmoothing     = v; mp3.setSmoothing(v); },
+    onFftThresholdTilt: v => { state.fftThresholdTilt = v; },
   });
 
   // Overlay: click anywhere → init MIDI audio and load default file
@@ -238,7 +240,7 @@ function startRaf() {
 
       // Get live FFT notes, filter by pitch range, then keep top-N loudest
       let notes = fftNoteRanges
-        ? getNotesFromFft(mp3.getAnalyserNode(), fftNoteRanges, fftFreqBuf, state.fftThreshold)
+        ? getNotesFromFft(mp3.getAnalyserNode(), fftNoteRanges, fftFreqBuf, state.fftThreshold, state.fftThresholdTilt)
         : [];
       notes = notes.filter(n => n.midi >= state.fftLowMidi && n.midi <= state.fftHighMidi);
       notes = notes.slice(0, state.fftTopN);

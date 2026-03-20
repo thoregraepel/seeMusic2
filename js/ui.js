@@ -26,6 +26,7 @@ export function setupUI({
   onFftHighMidi,
   onFftGain,
   onFftSmoothing,
+  onFftThresholdTilt,
 }) {
   const fileSelect      = document.getElementById('file-select');
   const fileInput       = document.getElementById('file-input');
@@ -171,6 +172,14 @@ export function setupUI({
     const v = Number(smoothSlider.value);
     smoothDisplay.textContent = v.toFixed(2);
     onFftSmoothing(v);
+  });
+
+  const threshTiltSlider  = document.getElementById('fft-thresh-tilt');
+  const threshTiltDisplay = document.getElementById('fft-thresh-tilt-display');
+  threshTiltSlider.addEventListener('input', () => {
+    const v = Number(threshTiltSlider.value);
+    threshTiltDisplay.textContent = (v >= 0 ? '+' : '') + v.toFixed(1);
+    onFftThresholdTilt(v);
   });
 
   const visualLeadSlider  = document.getElementById('visual-lead');
